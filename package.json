@@ -2,7 +2,7 @@
     "name": "compiler-explorer",
     "displayName": "Compiler Explorer",
     "description": "Use Compiler Explorer in VSCode",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "publisher": "ananay-22",
     "license": "MIT",
     "homepage": "https://github.com/ananay-22/compiler-explorer-vsc.git",
@@ -131,7 +131,7 @@
             {
                 "title": "Open Compiler Explorer",
                 "category": "compiler-explorer",
-                "icon": "$(play)",
+                "icon": "$(symbol-event)",
                 "command": "compiler-explorer.open"
             },
             {

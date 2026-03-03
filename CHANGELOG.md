@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1]
+### Changed
+- Replaced the Command execution `$(play)` icon in the Editor Title bar with `$(symbol-event)` to better reflect the nature of the Godbolt AST mapping extension.
+
 ## [0.5.0]
 ### Added
 - Comprehensive test suite integration testing Godbolt AST line mappings against UI boundary exceptions.
