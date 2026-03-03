@@ -1,5 +1,7 @@
 # VSCode Compiler Explorer
 
+> [!NOTE]
+> **This extension is vibecoded!** It has been edited with an AI agent.
 VSCode compiler explorer is an extension that allows you to view Compiler Explorer output in VSCode.
 
 Compiler Explorer: https://godbolt.org/

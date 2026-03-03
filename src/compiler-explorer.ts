@@ -7,20 +7,25 @@ export default class CompilerExplorer {
     currentData: CompilerExplorerResponse | null;
 
     // The godbolt compiler provides additional info about the location of labels.
-    getAdditionalLabelInfo() : Array<GodboltLabel[]> {
+    getAdditionalLabelInfo(): Array<GodboltLabel[]> {
         return this.currentData.asm.map(line => line.labels);
     }
 
-    getSourceLineRange(disassemblyLineNumber: number) : number | null {
-        if( !this.currentData ) {
+    getSourceLineRange(disassemblyLineNumber: number): number | null {
+        if (!this.currentData) {
             return null;
         }
 
-        return this.currentData.asm[disassemblyLineNumber].source.line - 1;
+        const asmLine = this.currentData.asm[disassemblyLineNumber];
+        if (!asmLine || !asmLine.source || asmLine.source.line === undefined) {
+            return null;
+        }
+
+        return asmLine.source.line - 1;
     }
 
-    getDisassembledLineRange(sourceLineNumber: number) : Array<number> | null {
-        if( !this.currentData ) {
+    getDisassembledLineRange(sourceLineNumber: number): Array<number> | null {
+        if (!this.currentData) {
             return null;
         }
 
@@ -28,9 +33,9 @@ export default class CompilerExplorer {
 
         let startLine = 0;
         let size = 0;
-        for( let asmLine of this.currentData.asm ) {
-            if( !asmLine.source ) {
-                if( size == 0 ) {
+        for (let asmLine of this.currentData.asm) {
+            if (!asmLine.source) {
+                if (size == 0) {
                     startLine += 1;
                     continue;
                 }
@@ -40,10 +45,10 @@ export default class CompilerExplorer {
             }
 
             const { file, line } = asmLine.source;
-            if( line > lineNumber ) {
+            if (line > lineNumber) {
                 break;
             }
-            else if( line == lineNumber ) {
+            else if (line == lineNumber) {
                 size += 1;
             }
             else {
@@ -51,24 +56,24 @@ export default class CompilerExplorer {
             }
         }
 
-        if( size > 0 ) {
-            return [startLine, startLine + size -1];
+        if (size > 0) {
+            return [startLine, startLine + size - 1];
         }
         else {
             return null;
         }
     }
 
-    getCompileAPIUserOptions(lang : string) : string {
+    getCompileAPIUserOptions(lang: string): string {
         let options = [getCompilerOptions(lang)];
-        let additionalIncludes = getCompilerIncludes().map((inc: string) => { 
+        let additionalIncludes = getCompilerIncludes().map((inc: string) => {
             let sanitized = inc.replace(/\\/g, '/');
-            return `-I "${sanitized}"`; 
+            return `-I "${sanitized}"`;
         });
         return options.concat(additionalIncludes).join(' ');
     }
 
-    getCompileAPIOptions(userOptions: string) : any {
+    getCompileAPIOptions(userOptions: string): any {
         return {
             userArguments: userOptions,
             filters: {
@@ -94,13 +99,13 @@ export default class CompilerExplorer {
     logOutput(json: CompilerExplorerResponse) {
         // logger.debug(JSON.stringify(json, null, 2));
         let compilerOutput = [];
-        if( json.stdout ) {
+        if (json.stdout) {
             compilerOutput = compilerOutput.concat(json.stdout);
         }
-        if( json.stderr ) {
+        if (json.stderr) {
             compilerOutput = compilerOutput.concat(json.stderr);
         }
-        if( json.compilationOptions ) {
+        if (json.compilationOptions) {
             logger.debug(json.compilationOptions.join(' '))
         }
         logger.info(compilerOutput.map(l => l.text).join('\n'));
@@ -113,7 +118,7 @@ export default class CompilerExplorer {
         const options = this.getCompileAPIOptions(this.getCompileAPIUserOptions(language));
 
         this.currentData = null;
-        
+
         let fetchPromise = fetch(`${apiHost}/api/compiler/${compiler}/compile`, {
             method: 'POST',
             compress: true,
@@ -129,21 +134,21 @@ export default class CompilerExplorer {
                 compiler: compiler
             })
         })
-        .then(res => { 
-            return res.json(); 
-        })
-        .then((json: CompilerExplorerResponse) => { 
-            console.log(json);
-            this.currentData = json;
-            this.logOutput(json);
+            .then(res => {
+                return res.json();
+            })
+            .then((json: CompilerExplorerResponse) => {
+                console.log(json);
+                this.currentData = json;
+                this.logOutput(json);
 
-            if( !json.asm || (json.asm.length === 0 && json.stderr.length > 0) ) {
-                return "<Compilation Error>\n" + json.stderr.map(l => l.text).join('\n');
-            }
-            else {
-                return json.asm.map(a => a.text).join('\n'); 
-            }
-        });
+                if (!json.asm || (json.asm.length === 0 && json.stderr.length > 0)) {
+                    return "<Compilation Error>\n" + json.stderr.map(l => l.text).join('\n');
+                }
+                else {
+                    return json.asm.map(a => a.text).join('\n');
+                }
+            });
 
         return fetchPromise;
     }

@@ -2,10 +2,10 @@
     "name": "compiler-explorer",
     "displayName": "Compiler Explorer",
     "description": "Use Compiler Explorer in VSCode",
-    "version": "0.4.0",
-    "publisher": "MatthewEvers",
+    "version": "0.4.1",
+    "publisher": "ananay-22",
     "license": "MIT",
-    "homepage": "https://github.com/MRobertEvers/vscode-compiler-explorer.git",
+    "homepage": "https://github.com/ananay-22/compiler-explorer-vsc.git",
     "icon": "images/Compiler-Explorer-VSCode.png",
     "galleryBanner": {
         "color": "#1F1F1F",
@@ -13,7 +13,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/MRobertEvers/vscode-compiler-explorer.git"
+        "url": "https://github.com/ananay-22/compiler-explorer-vsc.git"
     },
     "bugs": {
         "url": "https://github.com/MRobertEvers/vscode-compiler-explorer/issues"
@@ -145,28 +145,50 @@
             {
                 "title": "Open Compiler Explorer",
                 "category": "compiler-explorer",
+                "icon": "$(play)",
                 "command": "compiler-explorer.open"
             },
             {
-                "title": "Open Compiler Explorer",
+                "title": "Update Compiler Explorer",
                 "category": "compiler-explorer",
+                "icon": "$(refresh)",
                 "command": "compiler-explorer.updateDisassembly"
             }
-        ]
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "compiler-explorer.open",
+                    "when": "resourceExtname == .c || resourceExtname == .cpp || resourceExtname == .py || resourceExtname == .java",
+                    "group": "navigation"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "compiler-explorer.open",
+                    "when": "resourceExtname == .c || resourceExtname == .cpp || resourceExtname == .py || resourceExtname == .java",
+                    "group": "navigation"
+                }
+            ]
+        }
     },
     "scripts": {
         "build": "webpack --mode none",
-        "watch": "webpack --mode none --watch"
+        "watch": "webpack --mode none --watch",
+        "pretest": "tsc -p ./",
+        "test": "node ./build/src/test/runTest.js"
     },
     "dependencies": {
-        "node": "^12.16.1",
         "node-fetch": "^2.6.0"
     },
     "devDependencies": {
+        "@types/mocha": "^10.0.10",
         "@types/node": "^12.12.14",
         "@types/node-fetch": "^2.5.5",
         "@types/vscode": "^1.42.0",
         "@types/webpack": "^4.41.7",
+        "@vscode/test-electron": "^2.5.2",
+        "mocha": "^11.7.5",
         "ts-loader": "^6.2.1",
         "ts-node": "^8.6.2",
         "typescript": "^3.8.3",

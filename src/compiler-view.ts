@@ -74,6 +74,26 @@ export default class CompilerView {
     
         vscode.commands.registerCommand('compiler-explorer.updateDisassembly', () => {this.updateCompilerExplorer();});
         vscode.commands.registerCommand('compiler-explorer.open', () => {this.showCompilerExplorer();});
+
+        vscode.languages.registerHoverProvider({ scheme: 'compiler-explorer' }, {
+            provideHover: (document, position, token) => {
+                if (!this.currentSourceEditor) return null;
+                const sourceLineNum = this.compilerExplorer.getSourceLineRange(position.line);
+                if (sourceLineNum !== null) {
+                    try {
+                        const sourceLineText = this.currentSourceEditor.document.lineAt(sourceLineNum).text.trim();
+                        if (sourceLineText) {
+                            const markdown = new vscode.MarkdownString();
+                            markdown.appendCodeblock(sourceLineText, this.currentSourceEditor.document.languageId);
+                            return new vscode.Hover(markdown);
+                        }
+                    } catch (e) {
+                        // ignore out of bounds
+                    }
+                }
+                return null;
+            }
+        });
     }
 
     private async showCompilerExplorer() {
@@ -88,6 +108,7 @@ export default class CompilerView {
 
         this.setCurrentSourceEditor(vscode.window.activeTextEditor);
         const result: vscode.TextEditor = await vscode.window.showTextDocument(newDocument, vscode.ViewColumn.Beside);
+        vscode.languages.setTextDocumentLanguage(newDocument, 'asm');
         this.setCurrentMnemonicsEditor(result);
 
         await vscode.commands.executeCommand('workbench.action.navigateBack');
