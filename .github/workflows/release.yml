@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # Update if needed
+          node-version: 20 # vsce requires node >= 20 for undici
           cache: 'npm'
 
       - name: Install Dependencies
