@@ -2,7 +2,7 @@
     "name": "compiler-explorer",
     "displayName": "Compiler Explorer",
     "description": "Use Compiler Explorer in VSCode",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "publisher": "ananay-22",
     "license": "MIT",
     "homepage": "https://github.com/ananay-22/compiler-explorer-vsc.git",
@@ -37,9 +37,7 @@
             "title": "Compiler Explorer Configuration",
             "properties": {
                 "compiler-explorer.url": {
-                    "type": [
-                        "string"
-                    ],
+                    "type": "string",
                     "default": "https://godbolt.org",
                     "description": "URL of compiler explorer.",
                     "scope": "window"
@@ -69,10 +67,7 @@
                     "scope": "window"
                 },
                 "compiler-explorer.optionsCpp": {
-                    "type": [
-                        "array",
-                        "string"
-                    ],
+                    "type": "array",
                     "items": {
                         "type": "string"
                     },
@@ -83,10 +78,7 @@
                     "scope": "window"
                 },
                 "compiler-explorer.optionsJava": {
-                    "type": [
-                        "array",
-                        "string"
-                    ],
+                    "type": "array",
                     "items": {
                         "type": "string"
                     },
@@ -97,10 +89,7 @@
                     "scope": "window"
                 },
                 "compiler-explorer.optionsPython": {
-                    "type": [
-                        "array",
-                        "string"
-                    ],
+                    "type": "array",
                     "items": {
                         "type": "string"
                     },
@@ -111,10 +100,7 @@
                     "scope": "window"
                 },
                 "compiler-explorer.optionsDefault": {
-                    "type": [
-                        "array",
-                        "string"
-                    ],
+                    "type": "array",
                     "items": {
                         "type": "string"
                     },

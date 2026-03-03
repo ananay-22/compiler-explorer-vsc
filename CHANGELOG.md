@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2]
+### Fixed
+- Fixed VSCode Settings UI visibility. Settings schemas no longer use multi-types so they are natively editable from the VSCode config UI.
+
+## [0.4.1]
+
 ### Added
 - Vibecoded by an AI agent similarly to digitaljs.
 - CI/CD Release pipeline under `.github/workflows/release.yml`.
