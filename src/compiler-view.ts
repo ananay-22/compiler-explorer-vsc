@@ -3,7 +3,7 @@ import * as logger from './logger';
 import CompilerExplorer from './compiler-explorer';
 import CompilerExplorerSourceProvider from './compiler-source-provider';
 import { GodboltLabel } from './compiler-explorer-types';
-import {getSyntaxHighlightDecorations, DecorationSpecification, getSyntaxHighlightDecorationTypes} from './assembler-syntax-highlight';
+import { getSyntaxHighlightDecorations, DecorationSpecification, getSyntaxHighlightDecorationTypes } from './assembler-syntax-highlight';
 import { getCompilerExplorerHost } from './config';
 import fetch from 'node-fetch';
 
@@ -30,9 +30,9 @@ export default class CompilerView {
     private supportedCompilers = this.getSupportedCompilers();
     activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeActiveTextEditor(editor => {
-            if( this.currentSourceEditor && this.currentMnemonicsEditor &&
+            if (this.currentSourceEditor && this.currentMnemonicsEditor &&
                 editor.document !== this.currentSourceEditor.document &&
-                editor.document !== this.currentMnemonicsEditor.document ) {
+                editor.document !== this.currentMnemonicsEditor.document) {
                 this.clearSyntaxHighlighting();
                 vscode.commands.executeCommand('compiler-explorer.updateDisassembly');
             }
@@ -41,20 +41,20 @@ export default class CompilerView {
         // vscode.window.onDidChangeTextEditorVisibleRanges(editor => {
         //     // Scroll in assembly.
         // });
-    
-        vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {            
-            if( !this.currentSourceEditor ) {
+
+        vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
+            if (!this.currentSourceEditor) {
                 return;
             }
-            
+
             this.syntaxHighlightMnemonics();
-            
-            if( event.textEditor.document === this.currentSourceEditor.document ) {
+
+            if (event.textEditor.document === this.currentSourceEditor.document) {
                 // Update highlighted lines.
                 this.clearHighlightedLines();
                 this.highlightMnemonicsLines(event.textEditor.selection.active.line);
             }
-            else if( event.textEditor.document === this.currentMnemonicsEditor.document ) {
+            else if (event.textEditor.document === this.currentMnemonicsEditor.document) {
                 this.clearHighlightedLines();
                 this.highlightSourceLines(event.textEditor.selection.active.line);
             }
@@ -63,17 +63,24 @@ export default class CompilerView {
         vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
             vscode.commands.executeCommand('compiler-explorer.updateDisassembly');
         });
-        
+
         vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
-            if( this.currentMnemonicsEditor && doc === this.currentMnemonicsEditor.document ) {
+            if (this.currentMnemonicsEditor && doc === this.currentMnemonicsEditor.document) {
                 this.setCurrentMnemonicsEditor(null);
             }
         });
-    
+
+        vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+            if (this.currentMnemonicsEditor && event.document === this.currentMnemonicsEditor.document) {
+                this.currentMnemonicsDecorations = [];
+                this.syntaxHighlightMnemonics();
+            }
+        });
+
         vscode.workspace.registerTextDocumentContentProvider('compiler-explorer', this.compilerSourceProvider);
-    
-        vscode.commands.registerCommand('compiler-explorer.updateDisassembly', () => {this.updateCompilerExplorer();});
-        vscode.commands.registerCommand('compiler-explorer.open', () => {this.showCompilerExplorer();});
+
+        vscode.commands.registerCommand('compiler-explorer.updateDisassembly', () => { this.updateCompilerExplorer(); });
+        vscode.commands.registerCommand('compiler-explorer.open', () => { this.showCompilerExplorer(); });
 
         vscode.languages.registerHoverProvider({ scheme: 'compiler-explorer' }, {
             provideHover: (document, position, token) => {
@@ -97,25 +104,27 @@ export default class CompilerView {
     }
 
     private async showCompilerExplorer() {
-        if( !this.canShowCompilerExplorer() ) {
-			return; // no editor
+        if (!this.canShowCompilerExplorer()) {
+            return; // no editor
         }
 
         const uri: vscode.Uri = vscode.Uri.parse('compiler-explorer:' + 'CompilerExplorer');
 
         // Calls back into the provider
-        let newDocument: vscode.TextDocument = await vscode.workspace.openTextDocument(uri); 
+        let newDocument: vscode.TextDocument = await vscode.workspace.openTextDocument(uri);
 
         this.setCurrentSourceEditor(vscode.window.activeTextEditor);
         const result: vscode.TextEditor = await vscode.window.showTextDocument(newDocument, vscode.ViewColumn.Beside);
-        vscode.languages.setTextDocumentLanguage(newDocument, 'asm');
         this.setCurrentMnemonicsEditor(result);
+
+        this.currentMnemonicsDecorations = [];
+        this.syntaxHighlightMnemonics();
 
         await vscode.commands.executeCommand('workbench.action.navigateBack');
     }
 
     private async updateCompilerExplorer() {
-        if( !this.canShowCompilerExplorer() ) {
+        if (!this.canShowCompilerExplorer()) {
             return;
         }
 
@@ -124,7 +133,7 @@ export default class CompilerView {
 
         // If the event is coming from the EditorChanged event, we need to update the editor.
         this.setCurrentSourceEditor(vscode.window.activeTextEditor);
-        
+
         this.compilerSourceProvider.onDidChangeEmitter.fire(this.currentMnemonicsEditor.document.uri);
     }
 
@@ -137,32 +146,32 @@ export default class CompilerView {
         this.clearHighlightedLines();
     }
 
-    private canShowCompilerExplorer() : boolean {
-        if( !vscode.window.activeTextEditor ) {
-			return false; // no editor
+    private canShowCompilerExplorer(): boolean {
+        if (!vscode.window.activeTextEditor) {
+            return false; // no editor
         }
         const lang: string = vscode.window.activeTextEditor.document.languageId;
-        if( lang == 'c' || lang == 'c++' || lang == 'cpp' ) {
+        if (lang == 'c' || lang == 'c++' || lang == 'cpp') {
             return true;
         }
-        else if(lang == 'python'){
+        else if (lang == 'python') {
             return true;
         }
-        else if(lang == 'java'){
+        else if (lang == 'java') {
             return true;
         }
         this.supportedCompilers.then(res => {
-            if(res.includes(lang)){
+            if (res.includes(lang)) {
                 return true;
             }
-          });
+        });
         //if some language is completely unsupported return false
         //for now this will always return true to enable the default lang usage
         return false;
     }
 
-    private getBaseMnemonicsDecorations() : Array<DecorationSpecification> {
-        if( this.currentMnemonicsDecorations.length == 0 ) {
+    private getBaseMnemonicsDecorations(): Array<DecorationSpecification> {
+        if (this.currentMnemonicsDecorations.length == 0) {
             this.currentMnemonicsDecorations = getSyntaxHighlightDecorations(
                 this.currentMnemonicsEditor, this.currentMnemonicsEditor.document.getText(), this.getCurrentLabels()
             );
@@ -171,29 +180,29 @@ export default class CompilerView {
         return this.currentMnemonicsDecorations.slice(0);
     }
 
-    private getCurrentLabels() : Array<GodboltLabel[]> {
-        if( this.currentLabels.length == 0 ) {
+    private getCurrentLabels(): Array<GodboltLabel[]> {
+        if (this.currentLabels.length == 0) {
             this.currentLabels = this.compilerExplorer.getAdditionalLabelInfo();
         }
 
         return this.currentLabels;
     }
 
-    private syntaxHighlightMnemonics() : void {
-        if( !this.currentMnemonicsEditor ) {
+    private syntaxHighlightMnemonics(): void {
+        if (!this.currentMnemonicsEditor) {
             return;
         }
 
         const decoratedRanges: Array<DecorationSpecification> = this.getBaseMnemonicsDecorations();
 
-        for( let decoration of decoratedRanges ) {
+        for (let decoration of decoratedRanges) {
             this.currentMnemonicsEditor.setDecorations(decoration.type, decoration.ranges);
         }
     }
 
-    private getSourceLineRange(disassembledLine: number) : vscode.Range {
+    private getSourceLineRange(disassembledLine: number): vscode.Range {
         let lineNum = this.compilerExplorer.getSourceLineRange(disassembledLine);
-        if( !lineNum ) {
+        if (!lineNum) {
             return null;
         }
 
@@ -201,9 +210,9 @@ export default class CompilerView {
         return new vscode.Range(line.range.start, line.range.end)
     }
 
-    private getDisassembledLineRange(sourceLine: number) : vscode.Range {
+    private getDisassembledLineRange(sourceLine: number): vscode.Range {
         let result = this.compilerExplorer.getDisassembledLineRange(sourceLine);
-        if( !result ) {
+        if (!result) {
             return null;
         }
 
@@ -215,60 +224,62 @@ export default class CompilerView {
     }
 
     private clearSyntaxHighlighting() {
-        if( !this.currentMnemonicsEditor ) {
+        if (!this.currentMnemonicsEditor) {
             return;
         }
         let clearedSyntaxTypes = getSyntaxHighlightDecorationTypes();
-        for( let type of Object.keys(clearedSyntaxTypes) ) {
+        for (let type of Object.keys(clearedSyntaxTypes)) {
             this.currentMnemonicsEditor.setDecorations(clearedSyntaxTypes[type], []);
         }
     }
 
     private clearHighlightedLines() {
-        if( this.currentMnemonicsEditor ) {
+        if (this.currentMnemonicsEditor) {
             this.currentLabels = [];
             this.currentMnemonicsDecorations = [];
             this.currentMnemonicsEditor.setDecorations(highlightDecorationType, []);
         }
-        if( this.currentSourceEditor ) {
+        if (this.currentSourceEditor) {
             this.currentSourceEditor.setDecorations(highlightDecorationType, []);
         }
     }
 
-    private highlightMnemonicsLines(sourceLine: number) : void {
+    private highlightMnemonicsLines(sourceLine: number): void {
         const highlightRange = this.getDisassembledLineRange(sourceLine);
-        if( !highlightRange ) {
+        if (!highlightRange) {
             this.clearHighlightedLines();
             return;
         }
 
         this.syntaxHighlightMnemonics();
-        
+
         let highlightDecorations: vscode.DecorationOptions[] = [];
         highlightDecorations.push({
             range: highlightRange
         });
 
         this.currentMnemonicsEditor.setDecorations(highlightDecorationType, highlightDecorations);
+        this.currentMnemonicsEditor.revealRange(highlightRange, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
     }
 
-    private highlightSourceLines(disassembledLine: number) : void {
+    private highlightSourceLines(disassembledLine: number): void {
         const highlightRange = this.getSourceLineRange(disassembledLine);
-        if( !highlightRange ) {
+        if (!highlightRange) {
             this.clearHighlightedLines();
             return;
         }
 
         this.syntaxHighlightMnemonics();
-        
+
         let highlightDecorations: vscode.DecorationOptions[] = [];
         highlightDecorations.push({
             range: highlightRange
         });
 
         this.currentSourceEditor.setDecorations(highlightDecorationType, highlightDecorations);
+        this.currentSourceEditor.revealRange(highlightRange, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
     }
-    async getSupportedCompilers(){
+    async getSupportedCompilers() {
         const apiHost = getCompilerExplorerHost();
         return await (await fetch(`${apiHost}/api/compilers`)).text();
     }

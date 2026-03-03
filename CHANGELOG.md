@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3]
+### Fixed
+- Fixed a bug where ASM syntax highlighting (via VS Code decorators) disappeared on initial compiler load due to a language overriding mismatch.
+- Upgraded the VS Code extension click-to-highlight mapping behavior: clicking an ASM block or C code snippet will automatically auto-scroll the other editor window directly to the corresponding source target out of bounds.
+
 ## [0.4.2]
 ### Fixed
 - Fixed VSCode Settings UI visibility. Settings schemas no longer use multi-types so they are natively editable from the VSCode config UI.
