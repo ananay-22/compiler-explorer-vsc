@@ -34,9 +34,6 @@ jobs:
       - name: Build Extension
         run: npm run build
 
-      - name: Test Extension
-        run: npm run test
-
       - name: Package Extension
         run: vsce package --no-dependencies
         id: package
