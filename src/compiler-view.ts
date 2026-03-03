@@ -47,14 +47,14 @@ export default class CompilerView {
                 return;
             }
 
-            this.syntaxHighlightMnemonics();
-
-            if (event.textEditor.document === this.currentSourceEditor.document) {
-                // Update highlighted lines.
+            if (this.currentSourceEditor && event.textEditor.document === this.currentSourceEditor.document) {
+                logger.info(`Selection Changed: Source Editor at line ${event.textEditor.selection.active.line}`);
                 this.clearHighlightedLines();
                 this.highlightMnemonicsLines(event.textEditor.selection.active.line);
             }
-            else if (event.textEditor.document === this.currentMnemonicsEditor.document) {
+            else if (this.currentMnemonicsEditor && event.textEditor.document === this.currentMnemonicsEditor.document) {
+                // Ensure we don't log repeatedly if we're just clicking around the same file 
+                // logger.info(`Selection Changed: Mnemonics Editor at line ${event.textEditor.selection.active.line}`);
                 this.clearHighlightedLines();
                 this.highlightSourceLines(event.textEditor.selection.active.line);
             }
@@ -72,8 +72,11 @@ export default class CompilerView {
 
         vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
             if (this.currentMnemonicsEditor && event.document === this.currentMnemonicsEditor.document) {
-                this.currentMnemonicsDecorations = [];
-                this.syntaxHighlightMnemonics();
+                // Only clear if the content ACTUALLY changed (not just decorators)
+                if (event.contentChanges.length > 0) {
+                    this.currentMnemonicsDecorations = [];
+                    this.syntaxHighlightMnemonics();
+                }
             }
         });
 
@@ -81,26 +84,6 @@ export default class CompilerView {
 
         vscode.commands.registerCommand('compiler-explorer.updateDisassembly', () => { this.updateCompilerExplorer(); });
         vscode.commands.registerCommand('compiler-explorer.open', () => { this.showCompilerExplorer(); });
-
-        vscode.languages.registerHoverProvider({ scheme: 'compiler-explorer' }, {
-            provideHover: (document, position, token) => {
-                if (!this.currentSourceEditor) return null;
-                const sourceLineNum = this.compilerExplorer.getSourceLineRange(position.line);
-                if (sourceLineNum !== null) {
-                    try {
-                        const sourceLineText = this.currentSourceEditor.document.lineAt(sourceLineNum).text.trim();
-                        if (sourceLineText) {
-                            const markdown = new vscode.MarkdownString();
-                            markdown.appendCodeblock(sourceLineText, this.currentSourceEditor.document.languageId);
-                            return new vscode.Hover(markdown);
-                        }
-                    } catch (e) {
-                        // ignore out of bounds
-                    }
-                }
-                return null;
-            }
-        });
     }
 
     private async showCompilerExplorer() {
@@ -116,6 +99,8 @@ export default class CompilerView {
         this.setCurrentSourceEditor(vscode.window.activeTextEditor);
         const result: vscode.TextEditor = await vscode.window.showTextDocument(newDocument, vscode.ViewColumn.Beside);
         this.setCurrentMnemonicsEditor(result);
+
+        logger.info(`Compiler Explorer Opened: currentSourceEditor is ${!!this.currentSourceEditor}, newDocument is ${newDocument.uri}`);
 
         this.currentMnemonicsDecorations = [];
         this.syntaxHighlightMnemonics();
@@ -172,9 +157,22 @@ export default class CompilerView {
 
     private getBaseMnemonicsDecorations(): Array<DecorationSpecification> {
         if (this.currentMnemonicsDecorations.length == 0) {
+            const asmText = this.currentMnemonicsEditor.document.getText();
+            logger.info(`getBaseMnemonicsDecorations: Text length to Tokenize is ${asmText.length} chars...`);
+
+            // Compute an array where each index corresponds to an ASM line number, 
+            // and the value is the Source (C/C++) line number mapped to it
+            // This allows the tokenizer to assign the exact same background color to related blocks
+            const lineCount = this.currentMnemonicsEditor.document.lineCount;
+            let sourceMap = new Array<number | null>(lineCount).fill(null);
+            for (let i = 0; i < lineCount; i++) {
+                sourceMap[i] = this.compilerExplorer.getSourceLineRange(i);
+            }
+
             this.currentMnemonicsDecorations = getSyntaxHighlightDecorations(
-                this.currentMnemonicsEditor, this.currentMnemonicsEditor.document.getText(), this.getCurrentLabels()
+                this.currentMnemonicsEditor, asmText, this.getCurrentLabels(), sourceMap
             );
+            logger.info(`getBaseMnemonicsDecorations: Parsed ${this.currentMnemonicsDecorations.length} distinct syntax colors`);
         }
 
         return this.currentMnemonicsDecorations.slice(0);
@@ -190,10 +188,12 @@ export default class CompilerView {
 
     private syntaxHighlightMnemonics(): void {
         if (!this.currentMnemonicsEditor) {
+            logger.info('syntaxHighlightMnemonics: currentMnemonicsEditor is null');
             return;
         }
 
         const decoratedRanges: Array<DecorationSpecification> = this.getBaseMnemonicsDecorations();
+        logger.info(`syntaxHighlightMnemonics: Applying ${decoratedRanges.length} decoration specs`);
 
         for (let decoration of decoratedRanges) {
             this.currentMnemonicsEditor.setDecorations(decoration.type, decoration.ranges);
@@ -202,6 +202,14 @@ export default class CompilerView {
 
     private getSourceLineRange(disassembledLine: number): vscode.Range {
         let lineNum = this.compilerExplorer.getSourceLineRange(disassembledLine);
+
+        // If clicking a blank or spacer Assembly line, try scanning a few lines up to find the nearest mapping
+        let scanLine = disassembledLine;
+        while (!lineNum && scanLine > 0 && disassembledLine - scanLine < 5) {
+            scanLine--;
+            lineNum = this.compilerExplorer.getSourceLineRange(scanLine);
+        }
+
         if (!lineNum) {
             return null;
         }
@@ -245,12 +253,15 @@ export default class CompilerView {
     }
 
     private highlightMnemonicsLines(sourceLine: number): void {
+        logger.info(`highlightMnemonicsLines: Source line clicked: ${sourceLine}`);
         const highlightRange = this.getDisassembledLineRange(sourceLine);
         if (!highlightRange) {
+            logger.info(`highlightMnemonicsLines: No mapping found for source line ${sourceLine}`);
             this.clearHighlightedLines();
             return;
         }
 
+        logger.info(`highlightMnemonicsLines: highlighting ASM range [${highlightRange.start.line}, ${highlightRange.end.line}]`);
         this.syntaxHighlightMnemonics();
 
         let highlightDecorations: vscode.DecorationOptions[] = [];
@@ -263,12 +274,15 @@ export default class CompilerView {
     }
 
     private highlightSourceLines(disassembledLine: number): void {
+        logger.info(`highlightSourceLines: ASM line clicked: ${disassembledLine}`);
         const highlightRange = this.getSourceLineRange(disassembledLine);
         if (!highlightRange) {
+            logger.info(`highlightSourceLines: No mapping found for ASM line ${disassembledLine}`);
             this.clearHighlightedLines();
             return;
         }
 
+        logger.info(`highlightSourceLines: highlighting C range [${highlightRange.start.line}, ${highlightRange.end.line}]`);
         this.syntaxHighlightMnemonics();
 
         let highlightDecorations: vscode.DecorationOptions[] = [];

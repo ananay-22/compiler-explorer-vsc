@@ -2,7 +2,7 @@
     "name": "compiler-explorer",
     "displayName": "Compiler Explorer",
     "description": "Use Compiler Explorer in VSCode",
-    "version": "0.4.3",
+    "version": "0.5.0",
     "publisher": "ananay-22",
     "license": "MIT",
     "homepage": "https://github.com/ananay-22/compiler-explorer-vsc.git",
@@ -159,8 +159,8 @@
         }
     },
     "scripts": {
-        "build": "webpack --mode none",
-        "watch": "webpack --mode none --watch",
+        "build": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none",
+        "watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none --watch",
         "pretest": "tsc -p ./",
         "test": "node ./build/src/test/runTest.js"
     },

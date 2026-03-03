@@ -8,7 +8,7 @@ export default class CompilerExplorerSourceProvider implements vscode.TextDocume
     onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
 
     private compilerExplorer: CompilerExplorer;
-    
+
     get onDidChange() {
         return this.onDidChangeEmitter.event;
     }
@@ -17,10 +17,16 @@ export default class CompilerExplorerSourceProvider implements vscode.TextDocume
         this.compilerExplorer = compilerExplorer;
     }
 
-    provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken) : vscode.ProviderResult<string> {
+    async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
         const sourceCode = vscode.window.activeTextEditor.document.getText();
         const lang = vscode.window.activeTextEditor.document.languageId;
-        return this.compilerExplorer.compile(lang, sourceCode);
+        const text = await this.compilerExplorer.compile(lang, sourceCode);
+
+        if (!text) {
+            logger.info(`Compiler Explorer Document Provider: Assembled text is empty.`);
+            return '// <No code compiled>';
+        }
+        logger.info(`Compiler Explorer Document Provider: Provided mapped ASM block of ${text.length} characters.`);
+        return text;
     }
 };
-

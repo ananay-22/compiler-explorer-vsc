@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.3]
+## [0.5.0]
+### Added
+- Comprehensive test suite integration testing Godbolt AST line mappings against UI boundary exceptions.
+- Added strict `tokenize()` compiler syntax checks guaranteeing Godbolt label array formatting robustness.
+- "Rainbow" Color-block map visualizations tying identical Godbolt C-code elements directly to ASM disassembly rows to navigate rapidly between output sequences.
+
 ### Fixed
 - Fixed a bug where ASM syntax highlighting (via VS Code decorators) disappeared on initial compiler load due to a language overriding mismatch.
+- Refactored Godbolt source-map tokenization arrays to prevent runtime Null-pointer Exceptions from silent rendering crashes during spacing parsing.
 - Upgraded the VS Code extension click-to-highlight mapping behavior: clicking an ASM block or C code snippet will automatically auto-scroll the other editor window directly to the corresponding source target out of bounds.
 
 ## [0.4.2]
